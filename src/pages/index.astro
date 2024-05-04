@@ -1,0 +1,178 @@
+---
+const relations = [
+  { "from" : "box1", "to" : "box2", "bow" : 0, "flip" : true },
+  { "from" : "box3", "to" : "box4", "bow" : 0, "flip" : true }
+]
+
+const data = JSON.stringify(relations)
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro</title> 
+  </head>
+
+  <body>
+    <figure id="figure" data-diagram={data}>
+      <div class="container">
+        <div id="box1"></div>
+        <div id="box2"></div>
+        <div id="box3"></div> 
+        <div id="box4"></div>
+      </div> 
+
+      <div id="svgContainer">
+      </div> 
+    </figure>
+  </body>
+</html>
+
+<style is:global>* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+figure {
+  margin: 40px;
+  position: relative;
+  background: #03030330;
+}
+
+svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  stroke-dasharray: 4 4;
+  stroke: red;
+  fill: none;
+  stroke-width: 2px;
+}
+
+#svgContainer {
+  position: absolute;
+  background: #90000040;
+}
+
+.container {
+  position: absolute;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 100px
+}
+
+.container > div {
+  position: static;
+  display: block;
+}
+
+.container #box1 {
+  height: 100px;
+  width: 400px;
+  margin-top: 300px;
+  border: 2px solid green;
+}
+
+.container #box2 {
+  height: 200px;
+  width: 300px;
+  border: 2px solid red;
+}
+
+.container #box3 {
+  height: 100px;
+  width: 400px;
+  margin-top: 100px;
+  border: 2px solid pink;
+}
+
+.container #box4 {
+  height: 200px;
+  width: 200px;
+  border: 2px solid orange;
+}
+</style>
+
+<script>
+import { getBoxToBoxArrow } from "perfect-arrows"
+
+function draw(data) {
+  const svgContainer = document.getElementById("svgContainer");
+  svgContainer.innerHTML = "";
+
+  data.forEach(d => {
+    drawRelation(d.from, d.to, { bow: 0, stretch: 0.5, stretchMin: 0, stretchMax: 100, padStart: 10, padEnd: 10, flip: d.flip, straights: true, });
+  });
+}
+
+const getRelative = (elem, frame) => {
+  const {min_x, min_y } = frame;
+
+  return {
+    "left": elem.offsetLeft - min_x,
+    "right": elem.offsetLeft + elem.offsetWidth - min_x,
+    "bottom": elem.offsetTop + elem.offsetHeight - min_y,
+    "top": elem.offsetTop - min_y,
+    "height": elem.offsetHeight,
+    "width": elem.offsetWidth,
+    "center": {
+      "x": elem.offsetLeft + elem.offsetWidth / 2 - min_x,
+      "y": elem.offsetTop + elem.offsetHeight / 2 - min_y
+    }
+  };
+};
+
+function drawArrow(arrow, frame) {
+  const [sx, sy, cx, cy, ex, ey, ae, as, sc] = arrow
+  const { min_x, max_x, min_y, max_y } = frame;
+
+  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", `${max_x - min_x}px`);
+  svg.setAttribute("height", `${max_y - min_y}px`);
+  svg.classList.add("trace");
+  svg.style.transform = `translate(${min_x}px, ${min_y}px)`;
+
+  const linea = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  linea.setAttribute("d", `${`M${sx},${sy} Q${cx},${cy} ${ex},${ey}`}`);
+  svg.appendChild(linea);
+
+  const svgContainer = document.getElementById("svgContainer");
+  svgContainer.appendChild(svg);
+}
+
+function drawRelation(id1, id2, config) {
+  const element1 = document.getElementById(id1);
+  const element2 = document.getElementById(id2);
+
+  const min_x = Math.min(element1.offsetLeft, element2.offsetLeft) - 50;
+  const max_x = Math.max(element1.offsetLeft + element1.offsetWidth, element2.offsetLeft + element2.offsetWidth) + 50;
+  const min_y = Math.min(element1.offsetTop, element2.offsetTop) - 50;
+  const max_y = Math.max(element1.offsetTop + element1.offsetHeight, element2.offsetTop + element2.offsetHeight) + 50;
+
+  const frame = { min_x, max_x, min_y, max_y };
+  const rect1 = getRelative(element1, frame);
+  const rect2 = getRelative(element2, frame);
+    
+  const arrow = getBoxToBoxArrow(rect1.left, rect1.top, rect1.width, rect1.height,
+                                rect2.left, rect2.top, rect2.width, rect2.height,
+                                config)
+
+  drawArrow(arrow, frame);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const figure = document.getElementById('figure');
+  const json = figure.getAttribute('data-diagram');
+  var data = JSON.parse(json);
+  draw(data);
+
+  window.addEventListener("resize", function () {
+    draw(data);
+  });
+});
+</script>
